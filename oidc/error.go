@@ -37,7 +37,7 @@ type ErrorResponse struct {
 }
 
 func (e ErrorResponse) Error() string {
-	if e.ErrorDescription == "" {
+	if e.ErrorDescription != "" {
 		return fmt.Sprintf("%s; %s", e.Err, e.ErrorDescription)
 	}
 	return string(e.Err)

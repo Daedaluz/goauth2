@@ -12,17 +12,17 @@ import (
 )
 
 type Result struct {
-	IDToken      string
-	AccessToken  string
-	RefreshToken string
-	Scope        []string
-	TokenType    string
+	IDToken      string      `json:"id_token"`
+	AccessToken  string      `json:"access_token"`
+	RefreshToken string      `json:"refresh_token"`
+	Scope        ScopeString `json:"scope"`
+	TokenType    string      `json:"token_type"`
 	Other        json.RawMessage
 }
 
 type IssuerMeta struct {
 	Issuer    string `json:"issuer"`
-	JWKSetURL string `json:"jwks_url"`
+	JWKSetURL string `json:"jwks_uri"`
 
 	TokenURL string `json:"token_endpoint"`
 

@@ -52,7 +52,7 @@ func StartAuthentication(ctx context.Context, issuer *oidc.Issuer, opts ...Optio
 		return nil, fmt.Errorf("issuer %s does not support CIBA", issuer.Meta.Issuer)
 	}
 
-	sess := &AuthSession{issuer: issuer}
+	sess := &AuthSession{issuer: issuer, Request: &Request{}}
 	// Apply the options
 	for _, opt := range opts {
 		opt.Apply(sess)
@@ -112,6 +112,7 @@ func (a *AuthSession) Poll(ctx context.Context) (*oidc.Result, error) {
 	}
 	values := url.Values{}
 	values.Set("auth_req_id", a.Request.AuthReqID)
+	values.Set("grant_type", "urn:openid:params:grant-type:ciba")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, pollURL, http.NoBody)
 	if err != nil {
 		return nil, err
@@ -123,10 +124,10 @@ func (a *AuthSession) Poll(ctx context.Context) (*oidc.Result, error) {
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		err := oidc.ErrorResponse{}
-		if err := json.NewDecoder(resp.Body).Decode(&err); err == nil {
-			return nil, err
+		if jerr := json.NewDecoder(resp.Body).Decode(&err); jerr != nil {
+			return nil, jerr
 		}
-		return nil, fmt.Errorf("failed to poll for authentication: %s", resp.Status)
+		return nil, err
 	}
 	res := &oidc.Result{}
 	if err := json.NewDecoder(resp.Body).Decode(res); err != nil {
