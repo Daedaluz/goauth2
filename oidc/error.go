@@ -43,10 +43,10 @@ func (e ErrorResponse) Error() string {
 	return string(e.Err)
 }
 
-func ParseError(r io.Reader) (*ErrorResponse, error) {
+func ParseError(r io.Reader) error {
 	var e ErrorResponse
 	if err := json.NewDecoder(r).Decode(&e); err != nil {
-		return nil, err
+		return err
 	}
-	return &e, nil
+	return &e
 }

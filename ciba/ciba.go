@@ -93,11 +93,8 @@ func StartAuthentication(ctx context.Context, issuer *oidc.Issuer, opts ...Optio
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		err := oidc.ErrorResponse{}
-		if err := json.NewDecoder(resp.Body).Decode(&err); err == nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("failed to start authentication: %s", resp.Status)
+		err = oidc.ParseError(resp.Body)
+		return nil, err
 	}
 	if err := json.NewDecoder(resp.Body).Decode(sess.Request); err != nil {
 		return nil, err
@@ -123,10 +120,7 @@ func (a *AuthSession) Poll(ctx context.Context) (*oidc.Result, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		err := oidc.ErrorResponse{}
-		if jerr := json.NewDecoder(resp.Body).Decode(&err); jerr != nil {
-			return nil, jerr
-		}
+		err = oidc.ParseError(resp.Body)
 		return nil, err
 	}
 	res := &oidc.Result{}
