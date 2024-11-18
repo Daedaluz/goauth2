@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ var (
 )
 
 func register(name string) {
-	client := uyulala.NewClient("https://idp.inits.se", clientID, clientSecret)
+	client := uyulala.NewClient("https://idp.inits.se", "http://localhost:9094", clientID, clientSecret)
 	challengeID, err := client.CreateUser(name)
 	if err != nil {
 		fmt.Println("Error creating user", err)
@@ -33,6 +34,16 @@ func register(name string) {
 	fmt.Println("\033[2J")
 	fmt.Println("Challenge ID: ", challengeID)
 	fmt.Printf("Please register the key at https://idp.inits.se/authenticator?id=%s\n", challengeID)
+	http.ListenAndServe("127.0.0.1:9094", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		user := r.FormValue("userId")
+		fmt.Fprintf(w, "User %s registered\n", user)
+		go func() {
+			time.Sleep(time.Second)
+			os.Exit(0)
+		}()
+	}))
 }
 
 func main() {

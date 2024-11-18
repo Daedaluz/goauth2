@@ -17,8 +17,7 @@ Example usecase:
 
 In this example the `qr_data` is an url and the `qr_type` contains the value `url`.
 
-Due to the fact that there now is some relevant reference to the authenticator returned from the OP, the hard requirement
-of some hint being sent to the OP can be removed.
+The hard requirement of sending a hint to the OP is removed in this example.
 
 `qr_type` could potentially be `opaque` and `qr_data` could be some other kind of relevance to the authenticator.
 
@@ -42,6 +41,20 @@ To create a user, and associate a key; run the following command and follow the 
 
 The name is not important and can be anything, for your own reference.
 
+
+eg:
+```bash
+./ciba register "Kalle Anka"
+```
+
+```
+Challenge ID:  6ca14a4b8ca81332
+Please register the key at https://idp.inits.se/authenticator?id=6ca14a4b8ca81332
+```
+
+After creating the key, you'll be redirected to a page that displays the created user id, that later can be used with
+`./ciba <user_id>` to authenticate the specific user.
+
 ## Authenticating any user
 
 To start an authentication request for an arbitrary user, run the following command:
@@ -52,6 +65,18 @@ To start an authentication request for an arbitrary user, run the following comm
 
 This method will skip sending any hints to the provider.
 
+eg:
+```bash
+./ciba
+```
+
+```
+<Terminal QR code>
+https://idp.inits.se/authenticator?id=f637d537ffc7468d
+Authorization Pending:  Waiting for user to view the challenge
+```
+
+
 ## Authenticating a specific user
 
 To start an authentication request for a specific user, run the following command:
@@ -61,3 +86,14 @@ To start an authentication request for a specific user, run the following comman
 ```
 
 This method will send a `login_hint` to the provider.
+
+eg:
+```bash
+./ciba 5e09028099a65f488aed4d5bcf378a0a7404
+```
+
+```
+<Terminal QR code>
+https://idp.inits.se/authenticator?id=f637d537ffc7468d
+Authorization Pending:  Waiting for user to view the challenge
+```
