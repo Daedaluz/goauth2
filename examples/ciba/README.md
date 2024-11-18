@@ -17,7 +17,8 @@ Example usecase:
 
 In this example the `qr_data` is an url and the `qr_type` contains the value `url`.
 
-The hard requirement of sending a hint to the OP is removed in this example.
+The [hard requirement of sending a hint](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#rfc.section.7) to the OP is ignored in this example
+as it is used to allow any user to authenticate, not just the user that the hint is for.
 
 `qr_type` could potentially be `opaque` and `qr_data` could be some other kind of relevance to the authenticator.
 
