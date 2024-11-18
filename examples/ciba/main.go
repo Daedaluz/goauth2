@@ -10,6 +10,7 @@ import (
 
 	"github.com/daedaluz/goauth2/ciba"
 	"github.com/daedaluz/goauth2/oidc"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/mdp/qrterminal"
 	"rsc.io/qr"
 )
@@ -22,7 +23,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	x, err := ciba.StartAuthentication(context.Background(), issuer)
+	var opts []ciba.Option
+	if len(os.Args) > 1 {
+		opts = append(opts, ciba.WithLoginHint(os.Args[1]))
+	}
+	x, err := ciba.StartAuthentication(context.Background(), issuer, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -39,6 +44,12 @@ func main() {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "    ")
 			enc.Encode(res)
+			token, err := jwt.ParseString(res.IDToken)
+			if err != nil {
+				fmt.Println("Couldn't parse IDToken", err)
+				return
+			}
+			enc.Encode(token)
 			break
 		}
 		time.Sleep(1 * time.Second)
