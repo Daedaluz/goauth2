@@ -41,9 +41,11 @@ func main() {
 		if err != nil {
 			fmt.Println("Poll error", "error", err)
 		} else {
+			fmt.Println("\033[2J")
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "    ")
 			enc.Encode(res)
+			fmt.Println()
 			token, err := jwt.ParseString(res.IDToken)
 			if err != nil {
 				fmt.Println("Couldn't parse IDToken", err)
