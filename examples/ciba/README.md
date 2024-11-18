@@ -17,6 +17,14 @@ Example usecase:
 
 In this example the `qr_data` is an url and the `qr_type` contains the value `url`.
 
+Due to the fact that there now is some relevant reference to the authenticator returned from the OP, the hard requirement
+of some hint being sent to the OP can be removed.
+
+`qr_type` could potentially be `opaque` and `qr_data` could be some other kind of relevance to the authenticator.
+
+The flow is very similar to the one used for [BankID](https://www.bankid.com/), where the user is typically presented with
+an animated QR code that can be scanned by the BankID app.
+
 ## Build
 
 ```bash
@@ -26,7 +34,7 @@ go build
 ## Register a user
 
 The id-provider used in this example exclusively uses passkeys as a form of authentication.
-To create a user, and associate a key; run the following command:
+To create a user, and associate a key; run the following command and follow the generated link:
 
 ```bash
 ./ciba register <name>
