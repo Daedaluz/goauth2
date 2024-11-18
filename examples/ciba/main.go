@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
-	"log/slog"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/daedaluz/goauth2/ciba"
 	"github.com/daedaluz/goauth2/oidc"
+	"github.com/mdp/qrterminal"
+	"rsc.io/qr"
 )
 
 func main() {
@@ -21,13 +26,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	slog.Info("Polling for result", "authenticate here", x.Request.QRData)
 	for {
+		fmt.Println("\033[2J")
+		qrBuilder := strings.Builder{}
+		qrterminal.GenerateHalfBlock(x.Request.QRData, qr.L, &qrBuilder)
+		fmt.Println(qrBuilder.String())
+		fmt.Println(x.Request.QRData)
 		res, err := x.Poll(context.Background())
 		if err != nil {
-			slog.Error("Poll error", "error", err)
+			fmt.Println("Poll error", "error", err)
 		} else {
-			slog.Info("Poll result", "result", res)
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "    ")
+			enc.Encode(res)
 			break
 		}
 		time.Sleep(1 * time.Second)
