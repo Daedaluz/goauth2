@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -20,30 +19,44 @@ import (
 
 var (
 	// Yes, these are intentionally leaked secrets.
-	clientID     = "9a8292bb-6f89-4b16-9113-71e5514e96b2"
-	clientSecret = "b93ec9fa-c516-4262-adf8-ea87784987da"
+	clientID     = "f0cbf686-5e81-4546-9b96-5a3acc045219"
+	clientSecret = "d27144a6-2dac-458c-8357-5e37a635548d"
 )
 
 func register(name string) {
 	client := uyulala.NewClient("https://idp.inits.se", "http://localhost:9094", clientID, clientSecret)
-	challengeID, err := client.CreateUser(name)
+	challenge, err := client.CreateUser(name)
 	if err != nil {
 		fmt.Println("Error creating user", err)
 		return
 	}
-	fmt.Println("\033[2J")
-	fmt.Println("Challenge ID: ", challengeID)
-	fmt.Printf("Please register the key at https://idp.inits.se/authenticator?id=%s\n", challengeID)
-	http.ListenAndServe("127.0.0.1:9094", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		user := r.FormValue("userId")
-		fmt.Fprintf(w, "User %s registered\n", user)
-		go func() {
-			time.Sleep(time.Second)
-			os.Exit(0)
-		}()
-	}))
+	for {
+		resp, err := client.Collect(challenge.ChallengeID)
+		if err == nil {
+			fmt.Println("User has completed registration")
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "    ")
+			enc.Encode(resp)
+			return
+		}
+		var uErr *uyulala.Error
+		if errors.As(err, &uErr) {
+			switch uErr.Status {
+			case "pending", "viewed":
+				fmt.Println("Waiting for user to complete registration")
+			default:
+				fmt.Println("Error", uErr)
+			}
+		}
+		qrBuilder := strings.Builder{}
+		qrterminal.Generate(challenge.QR(), qr.L, &qrBuilder)
+		fmt.Println("\033[2J")
+		fmt.Println("Follow the link in this QR code")
+		fmt.Println(qrBuilder.String())
+		fmt.Println("Or visit this URL in your browser")
+		fmt.Println(challenge.QR())
+		time.Sleep(1)
+	}
 }
 
 func main() {
@@ -70,7 +83,7 @@ func main() {
 	for {
 		fmt.Println("\033[2J")
 		qrBuilder := strings.Builder{}
-		qrterminal.Generate(x.Request.QRData, qr.L, &qrBuilder)
+		qrterminal.Generate(x.QrCode(), qr.L, &qrBuilder)
 		fmt.Println(qrBuilder.String())
 		fmt.Println(x.Request.QRData)
 		res, err := x.Poll(context.Background())
@@ -83,6 +96,7 @@ func main() {
 					fmt.Println("Access Denied: ", e.ErrorDescription)
 					return
 				case oidc.ErrAuthorizationPending:
+					fmt.Println("URL: ", x.QrCode())
 					fmt.Println("Authorization Pending: ", e.ErrorDescription)
 				default:
 					fmt.Println("Error: ", e.ErrorDescription)

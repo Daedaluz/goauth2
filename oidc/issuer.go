@@ -27,6 +27,7 @@ type IssuerMeta struct {
 	TokenURL string `json:"token_endpoint"`
 
 	CIBAURL           string   `json:"backchannel_authentication_endpoint"`
+	CIBAQRURL         string   `json:"backchannel_authentication_qr_endpoint"`
 	CIBADeliveryModes []string `json:"backchannel_authentication_delivery_modes_supported"`
 	meta              json.RawMessage
 }

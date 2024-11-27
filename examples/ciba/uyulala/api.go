@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 type Client struct {
@@ -15,10 +19,35 @@ type Client struct {
 }
 
 type (
-	challengeID struct {
-		ChallengeID string `json:"challenge_id"`
+	Error struct {
+		Code             int    `json:"code"`
+		Message          string `json:"error_description"`
+		Err              string `json:"error"`
+		TechnicalMessage string `json:"technicalMsg"`
+		Status           string `json:"status"`
+	}
+	Challenge struct {
+		ChallengeID string    `json:"challenge_id"`
+		Secret      string    `json:"secret"`
+		StartTime   time.Time `json:"-"`
+		api         string    `json:"-"`
 	}
 )
+
+func (e Error) Error() string {
+	return e.Message
+}
+
+func (c *Challenge) QR() string {
+	dur := time.Since(c.StartTime)
+	builder := jwt.NewBuilder()
+	builder.
+		Claim("challenge_id", c.ChallengeID).
+		Claim("duration", int(dur.Seconds()))
+	tok, _ := builder.Build()
+	stoken, _ := jwt.Sign(tok, jwa.HS256, []byte(c.Secret))
+	return fmt.Sprintf("%s/authenticator?token=%s", c.api, stoken)
+}
 
 func NewClient(api, redirect, clientID, clientSecret string) *Client {
 	return &Client{
@@ -54,42 +83,52 @@ func (c *Client) do(req *http.Request, out any) (*http.Response, error) {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		var e Error
+		if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+			return nil, err
+		}
+		return nil, e
+	}
+
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-func (c *Client) CreateUser(name string) (string, error) {
+func (c *Client) CreateUser(name string) (*Challenge, error) {
 	values := map[string]any{
 		"suggestedName": name,
 		"timeout":       380,
-		"redirect":      "http://localhost:9094",
 	}
 	req, err := c.newRequest(http.MethodPost, "/api/v1/service/create/user", values)
 	if err != nil {
-		return "", err
+		return &Challenge{}, err
 	}
-	var ch challengeID
-	_, err = c.do(req, &ch)
+	ch := &Challenge{}
+	_, err = c.do(req, ch)
 	if err != nil {
-		return "", err
+		return &Challenge{}, err
 	}
-	return ch.ChallengeID, nil
+	ch.StartTime = time.Now()
+	ch.api = c.API
+	return ch, nil
 }
 
-func (c *Client) Collect(challenge string) map[string]any {
+func (c *Client) Collect(challenge string) (map[string]any, error) {
 	values := map[string]any{
 		"challengeId": challenge,
 	}
 	req, err := c.newRequest(http.MethodPost, "/api/v1/collect", values)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var out map[string]any
 	_, err = c.do(req, &out)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return out
+	return out, nil
 }

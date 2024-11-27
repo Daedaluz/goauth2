@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/daedaluz/goauth2/oidc"
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 type AuthSession struct {
@@ -27,6 +29,8 @@ type AuthSession struct {
 	requestedExpiry time.Duration
 	pollInterval    time.Duration
 
+	StartTime time.Time
+
 	Request *Request
 }
 
@@ -35,7 +39,18 @@ type Request struct {
 	ExpiresIn int    `json:"expires_in,omitempty"`
 	Interval  int    `json:"interval,omitempty"`
 	QRData    string `json:"qr_data,omitempty"`
-	QRType    string `json:"qr_type,omitempty"`
+	QRSecret  string `json:"qr_secret,omitempty"`
+}
+
+func (r *Request) QRToken(startTime time.Time) string {
+	dur := time.Since(startTime)
+	builder := jwt.NewBuilder()
+	builder.
+		Claim("challenge_id", r.QRData).
+		Claim("duration", int(dur.Seconds()))
+	tok, _ := builder.Build()
+	stoken, _ := jwt.Sign(tok, jwa.HS256, []byte(r.QRSecret))
+	return string(stoken)
 }
 
 func Authenticate(ctx context.Context, issuer *oidc.Issuer, opts ...Option) (*oidc.Result, error) {
@@ -99,7 +114,12 @@ func StartAuthentication(ctx context.Context, issuer *oidc.Issuer, opts ...Optio
 	if err := json.NewDecoder(resp.Body).Decode(sess.Request); err != nil {
 		return nil, err
 	}
+	sess.StartTime = time.Now()
 	return sess, nil
+}
+
+func (a *AuthSession) QrCode() string {
+	return fmt.Sprintf("%s?token=%s", a.issuer.Meta.CIBAQRURL, a.Request.QRToken(a.StartTime))
 }
 
 func (a *AuthSession) Poll(ctx context.Context) (*oidc.Result, error) {
