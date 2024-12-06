@@ -22,6 +22,7 @@ const (
 const (
 	ErrSlowDown             = ErrorCode("slow_down")
 	ErrAuthorizationPending = ErrorCode("authorization_pending")
+	ErrAuthorizationViewed  = ErrorCode("authorization_viewed")
 	ErrExpiredToken         = ErrorCode("expired_token")
 	ErrAccessDenied         = ErrorCode("access_denied")
 	ErrTransactionFailed    = ErrorCode("transaction_failed")
